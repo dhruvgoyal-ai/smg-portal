@@ -11,6 +11,7 @@ import ShipmentsPage         from './pages/ShipmentsPage'
 import CustomersPage         from './pages/CustomersPage'
 import PartnersPage          from './pages/PartnersPage'
 import NotFound              from './pages/NotFound'
+import AnalyticsPage         from './pages/AnalyticsPage'
 
 // Guard: redirect to login if unauthenticated
 const ProtectedRoute = ({ children, roles }) => {
@@ -57,6 +58,11 @@ export default function App() {
               <PartnersPage />
             </ProtectedRoute>
           } />
+         <Route path="/admin/analytics" element={
+          <ProtectedRoute roles={['admin']}>
+            <AnalyticsPage />
+           </ProtectedRoute>
+         } />
 
           {/* Customer */}
           <Route path="/customer" element={

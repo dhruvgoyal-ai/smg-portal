@@ -9,8 +9,10 @@ const api = axios.create({
 
 // Attach JWT token to every request
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
+  const token = localStorage.getItem('smg_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
   return config
 })
 
@@ -32,7 +34,7 @@ export const authAPI = {
   login: (data) => api.post('/auth/login', data),
   register: (data) => api.post('/auth/register', data),
   getProfile: () => api.get('/auth/profile'),
-  logout: () => { localStorage.removeItem('token'); localStorage.removeItem('user') },
+  logout: () => { localStorage.removeItem('smg_token'); localStorage.removeItem('smg_user') },
 }
 
 // ── Shipments ─────────────────────────────────────────
@@ -69,7 +71,7 @@ export const partnerAPI = {
 
 // ── Dashboard ─────────────────────────────────────────
 export const dashboardAPI = {
-  getAdminStats: () => api.get('/dashboard/admin'),
+  getAdminStats: () => api.get('/admin/dashboard'),
   getCustomerStats: () => api.get('/dashboard/customer'),
   getPartnerStats: () => api.get('/dashboard/partner'),
   getRecentActivity: () => api.get('/dashboard/activity'),
