@@ -1,0 +1,839 @@
+{
+  "info": {
+    "_postman_id": "c4d961fd-9d8d-4b54-a67b-5bd0f95d7f39",
+    "name": "Logistics Employee Portal Backend",
+    "description": "Postman collection for the Logistics Employee Portal backend APIs.\n\nCollection variables:\n- `baseUrl`: API base URL\n- `token`: JWT bearer token\n- `userId`: User ID for user/admin operations\n- `shipmentId`: Shipment ID for shipment/partner/admin operations\n- `trackingId`: Tracking ID for public tracking API\n- `partnerId`: Logistics partner user ID used when creating shipments\n\nNote: `/api/users` currently exists in the codebase, but the route still checks for a legacy `manager` role in addition to `admin`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": "665f1a8a1f3c2b0012345678"
+    },
+    {
+      "key": "shipmentId",
+      "value": "665f1c8b1f3c2b0012345679"
+    },
+    {
+      "key": "trackingId",
+      "value": "TRK1001"
+    },
+    {
+      "key": "partnerId",
+      "value": "665f1d8c1f3c2b0012345680"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Admin User\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"Admin@123\",\n  \"role\": \"admin\",\n  \"phone\": \"+1 555 0100\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Register a new user with role `admin`, `customer`, or `logisticsPartner`."
+          },
+          "response": [
+            {
+              "name": "Register Success",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Admin User\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"Admin@123\",\n  \"role\": \"admin\",\n  \"phone\": \"+1 555 0100\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/register",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"User registered successfully\",\n  \"token\": \"<jwt-token>\",\n  \"user\": {\n    \"_id\": \"665f1a8a1f3c2b0012345678\",\n    \"name\": \"Admin User\",\n    \"email\": \"admin@example.com\",\n    \"role\": \"admin\",\n    \"phone\": \"+1 555 0100\",\n    \"createdAt\": \"2026-06-10T08:00:00.000Z\",\n    \"updatedAt\": \"2026-06-10T08:00:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "  pm.collectionVariables.set('token', jsonData.token);",
+                  "}",
+                  "if (jsonData.user && jsonData.user._id) {",
+                  "  pm.collectionVariables.set('userId', jsonData.user._id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login user and store JWT token in the `token` collection variable."
+          },
+          "response": [
+            {
+              "name": "Login Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Login successful\",\n  \"token\": \"<jwt-token>\",\n  \"user\": {\n    \"_id\": \"665f1a8a1f3c2b0012345678\",\n    \"name\": \"Admin User\",\n    \"email\": \"admin@example.com\",\n    \"role\": \"admin\",\n    \"phone\": \"+1 555 0100\",\n    \"lastLogin\": \"2026-06-10T08:05:00.000Z\",\n    \"createdAt\": \"2026-06-10T08:00:00.000Z\",\n    \"updatedAt\": \"2026-06-10T08:05:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "profile"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Profile Success",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"user\": {\n    \"_id\": \"665f1a8a1f3c2b0012345678\",\n    \"name\": \"Admin User\",\n    \"email\": \"admin@example.com\",\n    \"role\": \"admin\",\n    \"phone\": \"+1 555 0100\",\n    \"createdAt\": \"2026-06-10T08:00:00.000Z\",\n    \"updatedAt\": \"2026-06-10T08:05:00.000Z\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Current route protection in code is `admin` or legacy `manager`."
+          },
+          "response": [
+            {
+              "name": "Users List",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"count\": 2,\n  \"users\": [\n    {\n      \"_id\": \"665f1a8a1f3c2b0012345678\",\n      \"name\": \"Admin User\",\n      \"email\": \"admin@example.com\",\n      \"role\": \"admin\",\n      \"phone\": \"+1 555 0100\",\n      \"createdAt\": \"2026-06-10T08:00:00.000Z\",\n      \"updatedAt\": \"2026-06-10T08:05:00.000Z\"\n    },\n    {\n      \"_id\": \"665f1d8c1f3c2b0012345680\",\n      \"name\": \"Partner One\",\n      \"email\": \"partner@example.com\",\n      \"role\": \"logisticsPartner\",\n      \"phone\": \"+1 555 0101\",\n      \"createdAt\": \"2026-06-10T08:10:00.000Z\",\n      \"updatedAt\": \"2026-06-10T08:10:00.000Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{userId}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "User Details",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"user\": {\n    \"_id\": \"665f1a8a1f3c2b0012345678\",\n    \"name\": \"Admin User\",\n    \"email\": \"admin@example.com\",\n    \"role\": \"admin\",\n    \"phone\": \"+1 555 0100\",\n    \"createdAt\": \"2026-06-10T08:00:00.000Z\",\n    \"updatedAt\": \"2026-06-10T08:05:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Admin User\",\n  \"phone\": \"+1 555 0199\",\n  \"role\": \"admin\",\n  \"password\": \"NewPassword@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{userId}}"
+              ]
+            },
+            "description": "Sample body uses only fields that are still meaningful in the current user model."
+          },
+          "response": [
+            {
+              "name": "User Updated",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"User updated successfully\",\n  \"user\": {\n    \"_id\": \"665f1a8a1f3c2b0012345678\",\n    \"name\": \"Updated Admin User\",\n    \"email\": \"admin@example.com\",\n    \"role\": \"admin\",\n    \"phone\": \"+1 555 0199\",\n    \"createdAt\": \"2026-06-10T08:00:00.000Z\",\n    \"updatedAt\": \"2026-06-10T09:00:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{userId}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "User Deleted",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"User deleted successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Shipments",
+      "item": [
+        {
+          "name": "Create Shipment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trackingId\": \"TRK1001\",\n  \"senderName\": \"Alice Johnson\",\n  \"receiverName\": \"Bob Smith\",\n  \"senderAddress\": \"123 Main St, New York, NY\",\n  \"receiverAddress\": \"456 Market St, San Francisco, CA\",\n  \"status\": \"Pending\",\n  \"currentLocation\": \"New York Hub\",\n  \"expectedDeliveryDate\": \"2026-06-15T00:00:00.000Z\",\n  \"assignedPartner\": \"{{partnerId}}\",\n  \"timelineNote\": \"Shipment created and ready for pickup\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shipments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shipments"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Shipment Created",
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment created successfully\",\n  \"shipment\": {\n    \"_id\": \"665f1c8b1f3c2b0012345679\",\n    \"trackingId\": \"TRK1001\",\n    \"senderName\": \"Alice Johnson\",\n    \"receiverName\": \"Bob Smith\",\n    \"senderAddress\": \"123 Main St, New York, NY\",\n    \"receiverAddress\": \"456 Market St, San Francisco, CA\",\n    \"status\": \"Pending\",\n    \"currentLocation\": \"New York Hub\",\n    \"expectedDeliveryDate\": \"2026-06-15T00:00:00.000Z\",\n    \"assignedPartner\": {\n      \"_id\": \"665f1d8c1f3c2b0012345680\",\n      \"name\": \"Partner One\",\n      \"email\": \"partner@example.com\",\n      \"phone\": \"+1 555 0101\",\n      \"role\": \"logisticsPartner\"\n    },\n    \"timeline\": [\n      {\n        \"status\": \"Pending\",\n        \"location\": \"New York Hub\",\n        \"note\": \"Shipment created and ready for pickup\",\n        \"updatedAt\": \"2026-06-10T09:15:00.000Z\"\n      }\n    ],\n    \"createdAt\": \"2026-06-10T09:15:00.000Z\",\n    \"updatedAt\": \"2026-06-10T09:15:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All Shipments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shipments?status=Pending&assignedPartner={{partnerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shipments"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "Pending"
+                },
+                {
+                  "key": "assignedPartner",
+                  "value": "{{partnerId}}"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Shipments List",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"count\": 1,\n  \"shipments\": [\n    {\n      \"_id\": \"665f1c8b1f3c2b0012345679\",\n      \"trackingId\": \"TRK1001\",\n      \"senderName\": \"Alice Johnson\",\n      \"receiverName\": \"Bob Smith\",\n      \"status\": \"Pending\",\n      \"currentLocation\": \"New York Hub\",\n      \"expectedDeliveryDate\": \"2026-06-15T00:00:00.000Z\",\n      \"assignedPartner\": {\n        \"_id\": \"665f1d8c1f3c2b0012345680\",\n        \"name\": \"Partner One\",\n        \"email\": \"partner@example.com\",\n        \"phone\": \"+1 555 0101\",\n        \"role\": \"logisticsPartner\"\n      },\n      \"createdAt\": \"2026-06-10T09:15:00.000Z\",\n      \"updatedAt\": \"2026-06-10T09:15:00.000Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Shipment By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shipments/{{shipmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shipments",
+                "{{shipmentId}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Shipment Details",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"shipment\": {\n    \"_id\": \"665f1c8b1f3c2b0012345679\",\n    \"trackingId\": \"TRK1001\",\n    \"senderName\": \"Alice Johnson\",\n    \"receiverName\": \"Bob Smith\",\n    \"senderAddress\": \"123 Main St, New York, NY\",\n    \"receiverAddress\": \"456 Market St, San Francisco, CA\",\n    \"status\": \"Pending\",\n    \"currentLocation\": \"New York Hub\",\n    \"expectedDeliveryDate\": \"2026-06-15T00:00:00.000Z\",\n    \"assignedPartner\": {\n      \"_id\": \"665f1d8c1f3c2b0012345680\",\n      \"name\": \"Partner One\",\n      \"email\": \"partner@example.com\",\n      \"phone\": \"+1 555 0101\",\n      \"role\": \"logisticsPartner\"\n    },\n    \"timeline\": [\n      {\n        \"status\": \"Pending\",\n        \"location\": \"New York Hub\",\n        \"note\": \"Shipment created and ready for pickup\",\n        \"updatedAt\": \"2026-06-10T09:15:00.000Z\"\n      }\n    ],\n    \"createdAt\": \"2026-06-10T09:15:00.000Z\",\n    \"updatedAt\": \"2026-06-10T09:15:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Shipment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"In Transit\",\n  \"currentLocation\": \"Chicago Hub\",\n  \"expectedDeliveryDate\": \"2026-06-16T00:00:00.000Z\",\n  \"timelineNote\": \"Shipment moved from New York to Chicago\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/shipments/{{shipmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shipments",
+                "{{shipmentId}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Shipment Updated",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment updated successfully\",\n  \"shipment\": {\n    \"_id\": \"665f1c8b1f3c2b0012345679\",\n    \"trackingId\": \"TRK1001\",\n    \"status\": \"In Transit\",\n    \"currentLocation\": \"Chicago Hub\",\n    \"expectedDeliveryDate\": \"2026-06-16T00:00:00.000Z\",\n    \"timeline\": [\n      {\n        \"status\": \"Pending\",\n        \"location\": \"New York Hub\",\n        \"note\": \"Shipment created and ready for pickup\",\n        \"updatedAt\": \"2026-06-10T09:15:00.000Z\"\n      },\n      {\n        \"status\": \"In Transit\",\n        \"location\": \"Chicago Hub\",\n        \"note\": \"Shipment moved from New York to Chicago\",\n        \"updatedAt\": \"2026-06-11T11:00:00.000Z\"\n      }\n    ],\n    \"updatedAt\": \"2026-06-11T11:00:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Shipment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/shipments/{{shipmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "shipments",
+                "{{shipmentId}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Shipment Deleted",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment deleted successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tracking",
+      "item": [
+        {
+          "name": "Track Shipment By Tracking ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/tracking/{{trackingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "tracking",
+                "{{trackingId}}"
+              ]
+            },
+            "description": "Public tracking endpoint. No JWT token required."
+          },
+          "response": [
+            {
+              "name": "Tracking Details",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"trackingId\": \"TRK1001\",\n  \"currentStatus\": \"In Transit\",\n  \"currentLocation\": \"Chicago Hub\",\n  \"expectedDeliveryDate\": \"2026-06-16T00:00:00.000Z\",\n  \"shipmentTimeline\": [\n    {\n      \"status\": \"Pending\",\n      \"location\": \"New York Hub\",\n      \"note\": \"Shipment created and ready for pickup\",\n      \"updatedAt\": \"2026-06-10T09:15:00.000Z\"\n    },\n    {\n      \"status\": \"In Transit\",\n      \"location\": \"Chicago Hub\",\n      \"note\": \"Shipment moved from New York to Chicago\",\n      \"updatedAt\": \"2026-06-11T11:00:00.000Z\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Get Dashboard Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/dashboard",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "dashboard"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Dashboard Stats",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"totalUsers\": 12,\n  \"totalShipments\": 58,\n  \"deliveredShipments\": 32,\n  \"pendingShipments\": 10,\n  \"inTransitShipments\": 16\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Admin Users List",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"count\": 3,\n  \"users\": [\n    {\n      \"_id\": \"665f1a8a1f3c2b0012345678\",\n      \"name\": \"Admin User\",\n      \"email\": \"admin@example.com\",\n      \"role\": \"admin\",\n      \"phone\": \"+1 555 0100\",\n      \"createdAt\": \"2026-06-10T08:00:00.000Z\",\n      \"updatedAt\": \"2026-06-10T08:05:00.000Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get All Shipments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/shipments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "shipments"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Admin Shipments List",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"count\": 1,\n  \"shipments\": [\n    {\n      \"_id\": \"665f1c8b1f3c2b0012345679\",\n      \"trackingId\": \"TRK1001\",\n      \"status\": \"In Transit\",\n      \"currentLocation\": \"Chicago Hub\",\n      \"expectedDeliveryDate\": \"2026-06-16T00:00:00.000Z\",\n      \"assignedPartner\": {\n        \"_id\": \"665f1d8c1f3c2b0012345680\",\n        \"name\": \"Partner One\",\n        \"email\": \"partner@example.com\",\n        \"phone\": \"+1 555 0101\",\n        \"role\": \"logisticsPartner\"\n      },\n      \"createdAt\": \"2026-06-10T09:15:00.000Z\",\n      \"updatedAt\": \"2026-06-11T11:00:00.000Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "users",
+                "{{userId}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Admin Delete User",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"User deleted successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Shipment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/shipments/{{shipmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "shipments",
+                "{{shipmentId}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Admin Delete Shipment",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment deleted successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Logistics Partner",
+      "item": [
+        {
+          "name": "View Assigned Shipments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/shipments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "shipments"
+              ]
+            },
+            "description": "Use a JWT token for a user with role `logisticsPartner`."
+          },
+          "response": [
+            {
+              "name": "Assigned Shipments",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"count\": 1,\n  \"shipments\": [\n    {\n      \"_id\": \"665f1c8b1f3c2b0012345679\",\n      \"trackingId\": \"TRK1001\",\n      \"senderName\": \"Alice Johnson\",\n      \"receiverName\": \"Bob Smith\",\n      \"status\": \"In Transit\",\n      \"currentLocation\": \"Chicago Hub\",\n      \"expectedDeliveryDate\": \"2026-06-16T00:00:00.000Z\",\n      \"assignedPartner\": {\n        \"_id\": \"665f1d8c1f3c2b0012345680\",\n        \"name\": \"Partner One\",\n        \"email\": \"partner@example.com\",\n        \"phone\": \"+1 555 0101\",\n        \"role\": \"logisticsPartner\"\n      },\n      \"createdAt\": \"2026-06-10T09:15:00.000Z\",\n      \"updatedAt\": \"2026-06-11T11:00:00.000Z\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Shipment Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Out For Delivery\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/update-status/{{shipmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "update-status",
+                "{{shipmentId}}"
+              ]
+            },
+            "description": "To mark delivered, send `{\"status\": \"Delivered\"}`."
+          },
+          "response": [
+            {
+              "name": "Partner Status Updated",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment status updated successfully\",\n  \"shipment\": {\n    \"_id\": \"665f1c8b1f3c2b0012345679\",\n    \"trackingId\": \"TRK1001\",\n    \"status\": \"Out For Delivery\",\n    \"currentLocation\": \"Chicago Hub\",\n    \"timeline\": [\n      {\n        \"status\": \"Out For Delivery\",\n        \"location\": \"Chicago Hub\",\n        \"note\": \"Shipment status updated\",\n        \"updatedAt\": \"2026-06-12T07:30:00.000Z\"\n      }\n    ],\n    \"updatedAt\": \"2026-06-12T07:30:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Current Location",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentLocation\": \"San Francisco Delivery Center\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/partner/update-location/{{shipmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partner",
+                "update-location",
+                "{{shipmentId}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Partner Location Updated",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"success\": true,\n  \"message\": \"Shipment location updated successfully\",\n  \"shipment\": {\n    \"_id\": \"665f1c8b1f3c2b0012345679\",\n    \"trackingId\": \"TRK1001\",\n    \"status\": \"Out For Delivery\",\n    \"currentLocation\": \"San Francisco Delivery Center\",\n    \"timeline\": [\n      {\n        \"status\": \"Out For Delivery\",\n        \"location\": \"San Francisco Delivery Center\",\n        \"note\": \"Current location updated\",\n        \"updatedAt\": \"2026-06-12T08:15:00.000Z\"\n      }\n    ],\n    \"updatedAt\": \"2026-06-12T08:15:00.000Z\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
