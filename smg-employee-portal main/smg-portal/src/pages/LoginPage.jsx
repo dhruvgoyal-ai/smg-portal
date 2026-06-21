@@ -52,7 +52,11 @@ export default function LoginPage() {
     if (otp.length < 4) { setError('Please enter the OTP to proceed.'); return }
 
     setLoading(true)
-    const result = await login({ email: form.userId + '@smg.com', password: form.password, role: form.role })
+    const email = (form.role === 'customer' || form.userId.includes('@')) 
+      ? form.userId 
+      : `${form.userId}@smg.com`
+      
+    const result = await login({ email, password: form.password, role: form.role })
     setLoading(false)
     if (result.success) {
       navigate(ROLE_ROUTES[result.role] || '/admin')

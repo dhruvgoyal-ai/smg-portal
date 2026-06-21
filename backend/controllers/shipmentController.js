@@ -111,6 +111,14 @@ const getShipment = asyncHandler(async (req, res) => {
 const getAllShipments = asyncHandler(async (req, res) => {
   const query = {};
 
+  // If user is a customer, they can only see shipments where they are the sender or receiver
+  if (req.user.role === "customer") {
+    query.$or = [
+      { senderName: { $regex: new RegExp("^" + req.user.name + "$", "i") } },
+      { receiverName: { $regex: new RegExp("^" + req.user.name + "$", "i") } }
+    ];
+  }
+
   if (req.query.status) {
     query.status = req.query.status;
   }
@@ -129,6 +137,7 @@ const getAllShipments = asyncHandler(async (req, res) => {
     shipments
   });
 });
+
 
 const updateShipment = asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
