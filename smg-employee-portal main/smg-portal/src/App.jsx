@@ -1,8 +1,9 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
-
+ 
 import LoginPage             from './pages/LoginPage'
+import RegisterPage          from './pages/RegisterPage'
 import AdminDashboard        from './pages/AdminDashboard'
 import CustomerDashboard     from './pages/CustomerDashboard'
 import PartnerDashboard      from './pages/PartnerDashboard'
@@ -12,7 +13,7 @@ import CustomersPage         from './pages/CustomersPage'
 import PartnersPage          from './pages/PartnersPage'
 import NotFound              from './pages/NotFound'
 import AnalyticsPage         from './pages/AnalyticsPage'
-
+ 
 // Guard: redirect to login if unauthenticated
 const ProtectedRoute = ({ children, roles }) => {
   const { isAuthenticated, user } = useAuth()
@@ -20,7 +21,7 @@ const ProtectedRoute = ({ children, roles }) => {
   if (roles && !roles.includes(user?.role)) return <Navigate to="/unauthorized" replace />
   return children
 }
-
+ 
 // Root redirect based on role
 const RoleRedirect = () => {
   const { isAuthenticated, user } = useAuth()
@@ -28,7 +29,7 @@ const RoleRedirect = () => {
   const roleMap = { admin: '/admin', customer: '/customer', partner: '/partner' }
   return <Navigate to={roleMap[user?.role] || '/login'} replace />
 }
-
+ 
 export default function App() {
   return (
     <AuthProvider>
@@ -36,7 +37,8 @@ export default function App() {
         <Routes>
           <Route path="/"        element={<RoleRedirect />} />
           <Route path="/login"   element={<LoginPage />} />
-
+          <Route path="/register" element={<RegisterPage />} />
+ 
           {/* Admin */}
           <Route path="/admin" element={
             <ProtectedRoute roles={['admin']}>
@@ -63,7 +65,7 @@ export default function App() {
             <AnalyticsPage />
            </ProtectedRoute>
          } />
-
+ 
           {/* Customer */}
           <Route path="/customer" element={
             <ProtectedRoute roles={['customer']}>
@@ -75,7 +77,7 @@ export default function App() {
               <ShipmentsPage role="customer" />
             </ProtectedRoute>
           } />
-
+ 
           {/* Partner */}
           <Route path="/partner" element={
             <ProtectedRoute roles={['partner']}>
@@ -87,11 +89,11 @@ export default function App() {
               <ShipmentsPage role="partner" />
             </ProtectedRoute>
           } />
-
+ 
           {/* Tracking — public */}
           <Route path="/track"    element={<ShipmentTrackingPage />} />
           <Route path="/track/:trackingNo" element={<ShipmentTrackingPage />} />
-
+ 
           <Route path="/unauthorized" element={
             <div className="min-h-screen flex items-center justify-center bg-slate-100">
               <div className="text-center">

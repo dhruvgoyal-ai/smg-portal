@@ -51,12 +51,11 @@ export const shipmentAPI = {
 
 // ── Customers ─────────────────────────────────────────
 export const customerAPI = {
-  getAll: (params) => api.get('/customers', { params }),
-  getById: (id) => api.get(`/customers/${id}`),
-  create: (data) => api.post('/customers', data),
-  update: (id, data) => api.put(`/customers/${id}`, data),
-  delete: (id) => api.delete(`/customers/${id}`),
-  getShipments: (id) => api.get(`/customers/${id}/shipments`),
+  getAll: (params) => api.get('/users', { params }),
+  getById: (id) => api.get(`/users/${id}`),
+  create: (data) => api.post('/users', data),
+  update: (id, data) => api.put(`/users/${id}`, data),
+  delete: (id) => api.delete(`/users/${id}`),
 }
 
 // ── Partners ──────────────────────────────────────────
