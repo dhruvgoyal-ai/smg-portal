@@ -2,31 +2,32 @@ import React, { useState, useEffect } from 'react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { Badge, DataTable, Modal } from '../components/ui'
 import { customerAPI } from '../services/api'
-import { Users, Plus, Search, Edit, Trash2, Package, Phone, Mail, MapPin } from 'lucide-react'
-
-const MOCK_CUSTOMERS = [
-  { _id: '1', name: 'Rahul Verma',   email: 'rahul@email.com',    phone: '+91-98765-43210', city: 'Mumbai',    totalShipments: 12, status: 'active',   joinDate: 'Jan 2024' },
-  { _id: '2', name: 'Priya Sharma',  email: 'priya@email.com',    phone: '+91-90123-45678', city: 'Delhi',     totalShipments: 7,  status: 'active',   joinDate: 'Feb 2024' },
-  { _id: '3', name: 'Amit Kumar',    email: 'amit@email.com',     phone: '+91-88001-23456', city: 'Bangalore', totalShipments: 3,  status: 'active',   joinDate: 'Mar 2024' },
-  { _id: '4', name: 'Sunita Rao',    email: 'sunita@email.com',   phone: '+91-77900-12345', city: 'Hyderabad', totalShipments: 5,  status: 'inactive', joinDate: 'Jan 2024' },
-  { _id: '5', name: 'Deepak Singh',  email: 'deepak@email.com',   phone: '+91-76543-21098', city: 'Kolkata',   totalShipments: 8,  status: 'active',   joinDate: 'Apr 2024' },
-  { _id: '6', name: 'Meera Joshi',   email: 'meera@email.com',    phone: '+91-65432-10987', city: 'Pune',      totalShipments: 2,  status: 'active',   joinDate: 'May 2024' },
-  { _id: '7', name: 'Karthik Iyer',  email: 'karthik@email.com',  phone: '+91-54321-09876', city: 'Chennai',   totalShipments: 15, status: 'active',   joinDate: 'Dec 2023' },
-]
+import { Search, Edit, Trash2, Package, Phone, Mail, MapPin } from 'lucide-react'
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState(MOCK_CUSTOMERS)
+  const [customers, setCustomers] = useState([])
   const [search, setSearch]       = useState('')
   const [selected, setSelected]   = useState(null)
   const [detailOpen, setDetailOpen] = useState(false)
-  const [addOpen, setAddOpen]       = useState(false)
   const [loading, setLoading]       = useState(false)
 
   useEffect(() => {
-    customerAPI.getAll().then(res => {
-      if (res.data?.customers?.length) setCustomers(res.data.customers)
-    }).catch(() => {})
-  }, [])
+    const fetchCustomers = async () => {
+      try {
+        const res = await customerAPI.getAll();
+
+        setCustomers(
+          res.data.users.filter(
+            (user) => user.role === "customer"
+          )
+        );
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    fetchCustomers();
+  }, []);
 
   const filtered = customers.filter(c =>
     !search || c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -80,9 +81,6 @@ export default function CustomersPage() {
           <h2 className="text-lg font-bold text-slate-800">Customer Directory</h2>
           <p className="text-slate-400 text-sm">{filtered.length} customers</p>
         </div>
-        <button onClick={() => setAddOpen(true)} className="btn-primary text-xs">
-          <Plus className="w-3.5 h-3.5" /> Add Customer
-        </button>
       </div>
 
       {/* Search */}
@@ -147,28 +145,6 @@ export default function CustomersPage() {
             </div>
           </div>
         )}
-      </Modal>
-
-      {/* Add customer modal */}
-      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add New Customer">
-        <div className="space-y-3 text-sm">
-          {[
-            ['name',     'Full Name',     'text',  'Rahul Verma'],
-            ['email',    'Email',         'email', 'rahul@email.com'],
-            ['phone',    'Phone',         'text',  '+91-XXXXX-XXXXX'],
-            ['city',     'City',          'text',  'Mumbai'],
-            ['password', 'Password',      'password', '••••••••'],
-          ].map(([name, label, type, placeholder]) => (
-            <div key={name}>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">{label}</label>
-              <input name={name} type={type} placeholder={placeholder} className="input-field" />
-            </div>
-          ))}
-          <div className="flex gap-2 pt-2">
-            <button className="btn-primary text-xs">Add Customer</button>
-            <button onClick={() => setAddOpen(false)} className="btn-secondary text-xs">Cancel</button>
-          </div>
-        </div>
       </Modal>
     </DashboardLayout>
   )
