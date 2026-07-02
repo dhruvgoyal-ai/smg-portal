@@ -41,16 +41,16 @@ export default function PartnerDashboard() {
   const [deliveries, setDeliveries] = useState(MOCK_DELIVERIES)
 
   useEffect(() => {
-    partnerAPI.getAssignedShipments('me').then(res => {
+    partnerAPI.getAssignedShipments().then(res => {
       if (res.data?.shipments?.length) setDeliveries(res.data.shipments)
     }).catch(() => {})
   }, [])
 
   const counts = {
     assigned:  deliveries.length,
-    pending:   deliveries.filter(d => d.status === 'pending').length,
-    inTransit: deliveries.filter(d => ['in_transit','out_for_delivery'].includes(d.status)).length,
-    delivered: deliveries.filter(d => d.status === 'delivered').length,
+    pending:   deliveries.filter(d => d.status === 'Pending').length,
+    inTransit: deliveries.filter(d => ['In Transit', 'Out For Delivery'].includes(d.status)).length,
+    delivered: deliveries.filter(d => d.status === 'Delivered').length,
   }
 
   return (

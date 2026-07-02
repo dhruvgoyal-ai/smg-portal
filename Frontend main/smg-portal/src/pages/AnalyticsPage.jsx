@@ -27,17 +27,15 @@ export default function AnalyticsPage() {
         const shipmentRes = await shipmentAPI.getAll();
         setShipments(shipmentRes.data.shipments || []);
 
+        // GET /api/customers returns a bare array, not { customers: [] }
         const customerRes = await customerAPI.getAll();
-        setCustomers(customerRes.data.customers || []);
+        setCustomers(Array.isArray(customerRes.data) ? customerRes.data : []);
 
         const usersRes = await adminAPI.getUsers();
-
         const partnersData = (usersRes.data.users || []).filter(
           (u) => u.role === "logisticsPartner",
         );
-        console.log("Partners:", partners);
-        console.log("Partners Length:", partners.length);
-        setPartners(partnersData || []);
+        setPartners(partnersData);
       } catch (err) {
         console.error(err);
       }
@@ -105,14 +103,24 @@ export default function AnalyticsPage() {
 
     monthlyData[month] = (monthlyData[month] || 0) + 1;
   });
-  const activeCustomers = customers.filter((c) => c.status === "active").length;
+  // Derive per-customer shipment counts by cross-referencing the shipments array.
+  // Customer model has no totalShipments or status field.
+  const customerShipmentCounts = customers.reduce((acc, c) => {
+    const count = shipments.filter(
+      (s) => s.senderName === c.fullName || s.receiverName === c.fullName,
+    ).length;
+    acc[c._id] = count;
+    return acc;
+  }, {});
 
-  const inactiveCustomers = customers.filter(
-    (c) => c.status === "inactive",
+  // Customers who have at least one shipment are considered "active"
+  const activeCustomers = customers.filter(
+    (c) => (customerShipmentCounts[c._id] || 0) > 0,
   ).length;
+  const inactiveCustomers = totalCustomers - activeCustomers;
 
-  const totalCustomerShipments = customers.reduce(
-    (sum, c) => sum + c.totalShipments,
+  const totalCustomerShipments = Object.values(customerShipmentCounts).reduce(
+    (sum, n) => sum + n,
     0,
   );
 
@@ -120,6 +128,7 @@ export default function AnalyticsPage() {
     totalCustomers > 0
       ? (totalCustomerShipments / totalCustomers).toFixed(1)
       : 0;
+
   const chartMonthlyData = Object.keys(monthlyData).map((month) => ({
     month,
     shipments: monthlyData[month],
@@ -130,24 +139,26 @@ export default function AnalyticsPage() {
       ? ((deliveredShipments / totalShipments) * 100).toFixed(1)
       : 0;
 
+  // Customer model stores city inside address.city, not a top-level city field
   const cityCounts = {};
-
   customers.forEach((customer) => {
-    cityCounts[customer.city] = (cityCounts[customer.city] || 0) + 1;
+    const city = customer.address?.city;
+    if (city) cityCounts[city] = (cityCounts[city] || 0) + 1;
   });
-
   const cityData = Object.keys(cityCounts).map((city) => ({
     city,
     customers: cityCounts[city],
   }));
 
+  // Sort by computed shipment count; Customer model uses fullName not name
   const topCustomers = [...customers]
-    .sort((a, b) => b.totalShipments - a.totalShipments)
+    .sort(
+      (a, b) => (customerShipmentCounts[b._id] || 0) - (customerShipmentCounts[a._id] || 0),
+    )
     .slice(0, 5);
-
   const customerShipmentData = topCustomers.map((c) => ({
-    name: c.name,
-    shipments: c.totalShipments,
+    name: c.fullName,
+    shipments: customerShipmentCounts[c._id] || 0,
   }));
 
   const assignedShipments = shipments.filter((s) => s.assignedPartner).length;

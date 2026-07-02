@@ -3,41 +3,111 @@ import DashboardLayout from '../components/layout/DashboardLayout'
 import { Badge, DataTable, Modal } from '../components/ui'
 import { partnerAPI } from '../services/api'
 import { Truck, Plus, Search, Edit, Trash2, Star, MapPin, Package, Phone, Mail } from 'lucide-react'
-
-const MOCK_PARTNERS = [
-  { _id: '1', name: 'FastMove Logistics',    email: 'ops@fastmove.in',    phone: '+91-99887-76655', city: 'Mumbai',    activeDeliveries: 14, totalCompleted: 1240, rating: 4.8, status: 'active', joinDate: 'Oct 2023' },
-  { _id: '2', name: 'QuickShip Couriers',    email: 'info@quickship.in',  phone: '+91-98776-65544', city: 'Delhi',     activeDeliveries: 8,  totalCompleted: 890,  rating: 4.5, status: 'active', joinDate: 'Nov 2023' },
-  { _id: '3', name: 'SwiftCourier Pvt Ltd',  email: 'ops@swiftcourier.in', phone: '+91-97665-54433', city: 'Bangalore', activeDeliveries: 11, totalCompleted: 2100, rating: 4.9, status: 'active', joinDate: 'Sep 2023' },
-  { _id: '4', name: 'SpeedLink Delivery',    email: 'contact@speedlink.in', phone: '+91-96554-43322', city: 'Chennai',   activeDeliveries: 0,  totalCompleted: 430,  rating: 4.2, status: 'inactive', joinDate: 'Jan 2024' },
-  { _id: '5', name: 'RapidRoute Services',   email: 'ops@rapidroute.in',  phone: '+91-95443-32211', city: 'Hyderabad', activeDeliveries: 6,  totalCompleted: 760,  rating: 4.6, status: 'active', joinDate: 'Dec 2023' },
-  { _id: '6', name: 'ZipDash Logistics',     email: 'info@zipdash.in',    phone: '+91-94332-21100', city: 'Pune',      activeDeliveries: 3,  totalCompleted: 320,  rating: 4.3, status: 'active', joinDate: 'Feb 2024' },
-]
-
+ 
 const RatingStars = ({ rating }) => (
   <div className="flex items-center gap-1">
     <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
     <span className="text-xs font-semibold text-slate-700">{rating}</span>
   </div>
 )
-
+ 
+const EMPTY_FORM = {
+  name: '',
+  email: '',
+  phone: '',
+  city: '',
+  password: '',
+}
+ 
 export default function PartnersPage() {
-  const [partners, setPartners] = useState(MOCK_PARTNERS)
+  const [partners, setPartners] = useState([])
+  const [loading, setLoading] = useState(false)
   const [search, setSearch]     = useState('')
   const [selected, setSelected] = useState(null)
   const [detailOpen, setDetailOpen] = useState(false)
   const [addOpen, setAddOpen]       = useState(false)
-
+  const [addForm, setAddForm]       = useState(EMPTY_FORM)
+  const [saving, setSaving]         = useState(false)
+ 
+  const formatPartner = (p) => ({
+    _id: p._id,
+    name: p.name || p.companyName || '-',
+    email: p.email || '-',
+    phone: p.phone || '-',
+    city: p.city || '-',
+    rating: p.rating ?? 0,
+    activeDeliveries: p.activeDeliveries ?? 0,
+    totalCompleted: p.totalCompleted ?? 0,
+    status: p.status || 'active',
+    joinDate: p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '-',
+  })
+ 
+  const loadPartners = async () => {
+    setLoading(true)
+    try {
+      const res = await partnerAPI.getAll()
+      const list = res.data?.partners || res.data || []
+      setPartners(list.map(formatPartner))
+    } catch {
+      setPartners([])
+    } finally {
+      setLoading(false)
+    }
+  }
+ 
   useEffect(() => {
-    partnerAPI.getAll().then(res => {
-      if (res.data?.partners?.length) setPartners(res.data.partners)
-    }).catch(() => {})
+    loadPartners()
   }, [])
-
+ 
   const filtered = partners.filter(p =>
     !search || p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.city?.toLowerCase().includes(search.toLowerCase())
   )
-
+ 
+  const handleDelete = async (row) => {
+    if (!window.confirm(`Delete partner "${row.name}"? This cannot be undone.`)) return
+    try {
+      await partnerAPI.delete(row._id)
+      await loadPartners()
+    } catch {
+      /* no-op */
+    }
+  }
+ 
+  const handleEditSave = async () => {
+    if (!selected) return
+    setSaving(true)
+    try {
+      await partnerAPI.update(selected._id, {
+        name: selected.name,
+        email: selected.email,
+        phone: selected.phone,
+        city: selected.city,
+        status: selected.status,
+      })
+      await loadPartners()
+      setDetailOpen(false)
+    } catch {
+      /* no-op */
+    } finally {
+      setSaving(false)
+    }
+  }
+ 
+  const handleAddSubmit = async () => {
+    setSaving(true)
+    try {
+      await partnerAPI.create(addForm)
+      await loadPartners()
+      setAddForm(EMPTY_FORM)
+      setAddOpen(false)
+    } catch {
+      /* no-op */
+    } finally {
+      setSaving(false)
+    }
+  }
+ 
   const columns = [
     { key: 'name', label: 'Partner',
       render: (v, row) => (
@@ -71,14 +141,15 @@ export default function PartnersPage() {
             className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-brand transition-colors">
             <Edit className="w-3.5 h-3.5" />
           </button>
-          <button className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-red-500 transition-colors">
+          <button onClick={() => handleDelete(row)}
+            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-red-500 transition-colors">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       )
     },
   ]
-
+ 
   return (
     <DashboardLayout pageTitle="Partners">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
@@ -90,7 +161,7 @@ export default function PartnersPage() {
           <Plus className="w-3.5 h-3.5" /> Add Partner
         </button>
       </div>
-
+ 
       {/* Search */}
       <div className="card mb-4">
         <div className="relative max-w-sm">
@@ -99,13 +170,13 @@ export default function PartnersPage() {
             placeholder="Search partners…" className="input-field pl-9" />
         </div>
       </div>
-
+ 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4 mb-5">
         {[
           { label: 'Total Partners',      value: partners.length },
-          { label: 'Active Now',          value: partners.filter(p => p.activeDeliveries > 0).length, color: 'text-green-600' },
-          { label: 'Total Deliveries',    value: partners.reduce((s, p) => s + p.totalCompleted, 0).toLocaleString(), color: 'text-brand' },
+          { label: 'Active Now',          value: partners.filter(p => p.status === 'active').length, color: 'text-green-600' },
+          { label: 'Total Deliveries',    value: partners.reduce((s, p) => s + (p.totalCompleted || 0), 0).toLocaleString(), color: 'text-brand' },
         ].map(({ label, value, color = 'text-slate-800' }) => (
           <div key={label} className="card text-center">
             <p className={`text-2xl font-bold ${color}`}>{value}</p>
@@ -113,11 +184,11 @@ export default function PartnersPage() {
           </div>
         ))}
       </div>
-
+ 
       <div className="card">
-        <DataTable columns={columns} data={filtered} loading={false} emptyMessage="No partners found" />
+        <DataTable columns={columns} data={filtered} loading={loading} emptyMessage="No partners found" />
       </div>
-
+ 
       {/* Detail modal */}
       <Modal open={detailOpen} onClose={() => setDetailOpen(false)} title="Partner Details">
         {selected && (
@@ -136,11 +207,11 @@ export default function PartnersPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               {[
-                [<Mail className="w-3.5 h-3.5" />,    'Email',             selected.email],
-                [<Phone className="w-3.5 h-3.5" />,   'Phone',             selected.phone],
-                [<MapPin className="w-3.5 h-3.5" />,  'Base City',         selected.city],
-                [<Truck className="w-3.5 h-3.5" />,   'Active Deliveries', selected.activeDeliveries],
-                [<Package className="w-3.5 h-3.5" />, 'Total Completed',   selected.totalCompleted],
+                [<Mail className="w-3.5 h-3.5" key="mail" />,    'Email',             selected.email],
+                [<Phone className="w-3.5 h-3.5" key="phone" />,   'Phone',             selected.phone],
+                [<MapPin className="w-3.5 h-3.5" key="city" />,  'Base City',         selected.city],
+                [<Truck className="w-3.5 h-3.5" key="active" />,   'Active Deliveries', selected.activeDeliveries],
+                [<Package className="w-3.5 h-3.5" key="completed" />, 'Total Completed',   selected.totalCompleted],
                 [null,                                 'Member Since',      selected.joinDate],
               ].map(([icon, label, val]) => (
                 <div key={label} className="flex items-start gap-2">
@@ -153,13 +224,15 @@ export default function PartnersPage() {
               ))}
             </div>
             <div className="flex gap-2 pt-2">
-              <button className="btn-primary text-xs">Save Changes</button>
+              <button onClick={handleEditSave} disabled={saving} className="btn-primary text-xs">
+                {saving ? 'Saving…' : 'Save Changes'}
+              </button>
               <button onClick={() => setDetailOpen(false)} className="btn-secondary text-xs">Close</button>
             </div>
           </div>
         )}
       </Modal>
-
+ 
       {/* Add partner modal */}
       <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add New Partner">
         <div className="space-y-3 text-sm">
@@ -172,15 +245,25 @@ export default function PartnersPage() {
           ].map(([name, label, type, placeholder]) => (
             <div key={name}>
               <label className="block text-xs font-semibold text-slate-600 mb-1">{label}</label>
-              <input name={name} type={type} placeholder={placeholder} className="input-field" />
+              <input
+                name={name}
+                type={type}
+                placeholder={placeholder}
+                value={addForm[name]}
+                onChange={(e) => setAddForm({ ...addForm, [name]: e.target.value })}
+                className="input-field"
+              />
             </div>
           ))}
           <div className="flex gap-2 pt-2">
-            <button className="btn-primary text-xs">Add Partner</button>
-            <button onClick={() => setAddOpen(false)} className="btn-secondary text-xs">Cancel</button>
+            <button onClick={handleAddSubmit} disabled={saving} className="btn-primary text-xs">
+              {saving ? 'Adding…' : 'Add Partner'}
+            </button>
+            <button onClick={() => { setAddOpen(false); setAddForm(EMPTY_FORM) }} className="btn-secondary text-xs">Cancel</button>
           </div>
         </div>
       </Modal>
     </DashboardLayout>
   )
 }
+ 

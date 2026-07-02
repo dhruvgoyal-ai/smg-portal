@@ -33,6 +33,16 @@ const userSchema = new mongoose.Schema(
       required: [true, "Phone number is required"],
       trim: true,
       match: [/^[0-9+\-\s()]{7,20}$/, "Please provide a valid phone number"]
+    },
+    city: {
+      type: String,
+      trim: true,
+      default: ""
+    },
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active"
     }
   },
   {
@@ -61,6 +71,6 @@ userSchema.methods.matchPassword = async function matchPassword(enteredPassword)
   return bcrypt.compare(enteredPassword, this.password);
 };
 
-const User = mongoose.model("User", userSchema);
+const User = mongoose.models.User || mongoose.model("User", userSchema);
 
 export default User;

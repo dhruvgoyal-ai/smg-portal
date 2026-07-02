@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import Customer from "../models/Customer.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 const protect = asyncHandler(async (req, res, next) => {
@@ -14,14 +15,21 @@ const protect = asyncHandler(async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select("-password");
+    // Support both { userId } (generateToken util) and { id } (customerRoutes inline)
+    const id = decoded.userId || decoded.id;
 
-    if (!user) {
+    // Try User model first, then fall back to Customer model
+    let principal = await User.findById(id).select("-password");
+    if (!principal) {
+      principal = await Customer.findById(id).select("-password");
+    }
+
+    if (!principal) {
       res.status(401);
       throw new Error("Not authorized, user not found");
     }
 
-    req.user = user;
+    req.user = principal;
     next();
   } catch (error) {
     res.status(401);

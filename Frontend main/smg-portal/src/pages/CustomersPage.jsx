@@ -14,13 +14,17 @@ export default function CustomersPage() {
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const res = await customerAPI.getAll();
+       const res = await customerAPI.getAll();
+       const formattedCustomers = res.data.map((customer) => ({
+       ...customer,
+       name: customer.fullName,
+       city: customer.address?.city || "-",
+       totalShipments: 0,
+       joinDate: new Date(customer.createdAt).toLocaleDateString(),
+        status: "active",
+}));
 
-        setCustomers(
-          res.data.users.filter(
-            (user) => user.role === "customer"
-          )
-        );
+setCustomers(formattedCustomers);
       } catch (error) {
         console.log(error);
       }
@@ -40,7 +44,7 @@ export default function CustomersPage() {
       render: (v, row) => (
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center text-brand font-bold text-xs flex-shrink-0">
-            {v[0].toUpperCase()}
+            {v?.charAt(0).toUpperCase()}
           </div>
           <div>
             <p className="font-semibold text-slate-800 text-sm">{v}</p>
@@ -95,10 +99,22 @@ export default function CustomersPage() {
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-4 mb-5">
         {[
-          { label: 'Total',    value: customers.length, color: 'text-slate-800' },
-          { label: 'Active',   value: customers.filter(c => c.status === 'active').length,   color: 'text-green-600' },
-          { label: 'Inactive', value: customers.filter(c => c.status === 'inactive').length, color: 'text-red-500' },
-        ].map(({ label, value, color }) => (
+      {
+        label: 'Total',
+        value: customers.length,
+        color: 'text-slate-800'
+      },
+      {
+        label: 'Active',
+        value: customers.length,
+        color: 'text-green-600'
+      },
+     {
+       label: 'Inactive',
+       value: 0,
+       color: 'text-red-500'
+  },
+].map(({ label, value, color }) => (
           <div key={label} className="card text-center">
             <p className={`text-2xl font-bold ${color}`}>{value}</p>
             <p className="text-xs text-slate-400 mt-0.5">{label} Customers</p>
@@ -116,7 +132,7 @@ export default function CustomersPage() {
           <div className="space-y-4 text-sm">
             <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
               <div className="w-12 h-12 rounded-full bg-brand/10 flex items-center justify-center text-brand font-bold text-lg">
-                {selected.name[0]}
+                selected.name?.charAt(0)
               </div>
               <div>
                 <p className="font-semibold text-slate-800">{selected.name}</p>

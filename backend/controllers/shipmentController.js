@@ -23,9 +23,10 @@ const createShipment = asyncHandler(async (req, res) => {
     status,
     currentLocation,
     expectedDeliveryDate,
+    customerId,
     assignedPartner,
     timelineNote
-  } = req.body;
+  }=req.body;
 
   if (
     !trackingId ||
@@ -47,6 +48,11 @@ const createShipment = asyncHandler(async (req, res) => {
     res.status(409);
     throw new Error("Shipment with this tracking ID already exists");
   }
+  const customer = await User.findById(customerId);
+   if (!customer || customer.role !== "customer") {
+    res.status(400);
+    throw new Error("Invalid customer");
+  }
 
   const isValidPartner = await validateAssignedPartner(assignedPartner);
 
@@ -64,9 +70,12 @@ const createShipment = asyncHandler(async (req, res) => {
     status,
     currentLocation,
     expectedDeliveryDate,
+    customerId,
     assignedPartner,
+
     timeline: [
       {
+        // Use the explicitly provided status, or fall back to the schema default "Pending"
         status: status || "Pending",
         location: currentLocation,
         note: timelineNote || "Shipment created"
@@ -111,12 +120,16 @@ const getShipment = asyncHandler(async (req, res) => {
 const getAllShipments = asyncHandler(async (req, res) => {
   const query = {};
 
-  // If user is a customer, they can only see shipments where they are the sender or receiver
+  // If user is a customer, they can only see shipments where they are the sender or receiver.
+  // req.user may be a User (field: name) or Customer (field: fullName) — handle both.
   if (req.user.role === "customer") {
-    query.$or = [
-      { senderName: { $regex: new RegExp("^" + req.user.name + "$", "i") } },
-      { receiverName: { $regex: new RegExp("^" + req.user.name + "$", "i") } }
-    ];
+    const customerName = req.user.fullName || req.user.name;
+    if (customerName) {
+      query.$or = [
+        { senderName: { $regex: new RegExp("^" + customerName + "$", "i") } },
+        { receiverName: { $regex: new RegExp("^" + customerName + "$", "i") } }
+      ];
+    }
   }
 
   if (req.query.status) {

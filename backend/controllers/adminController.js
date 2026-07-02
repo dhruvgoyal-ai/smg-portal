@@ -1,15 +1,24 @@
 import mongoose from "mongoose";
 import Shipment from "../models/Shipment.js";
 import User from "../models/User.js";
+import Customer from "../models/Customer.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await User.find().select("-password").sort({ createdAt: -1 });
+  const adminsAndPartners = await User.find()
+    .select("-password")
+    .sort({ createdAt: -1 });
+
+  const customers = await Customer.find()
+    .select("-password")
+    .sort({ createdAt: -1 });
+
+  const users = [...adminsAndPartners, ...customers];
 
   res.status(200).json({
     success: true,
     count: users.length,
-    users
+    users,
   });
 });
 
@@ -21,7 +30,7 @@ const getAllAdminShipments = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     count: shipments.length,
-    shipments
+    shipments,
   });
 });
 
@@ -31,18 +40,20 @@ const deleteUserByAdmin = asyncHandler(async (req, res) => {
     throw new Error("Invalid user ID");
   }
 
-  const user = await User.findById(req.params.id);
+  let deleted = await User.findByIdAndDelete(req.params.id);
 
-  if (!user) {
+  if (!deleted) {
+    deleted = await Customer.findByIdAndDelete(req.params.id);
+  }
+
+  if (!deleted) {
     res.status(404);
     throw new Error("User not found");
   }
 
-  await user.deleteOne();
-
   res.status(200).json({
     success: true,
-    message: "User deleted successfully"
+    message: "User deleted successfully",
   });
 });
 
@@ -63,60 +74,38 @@ const deleteShipmentByAdmin = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    message: "Shipment deleted successfully"
+    message: "Shipment deleted successfully",
   });
 });
 
 const getDashboardStatistics = asyncHandler(async (req, res) => {
-  const [shipmentStats, userStats] = await Promise.all([
-    Shipment.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalShipments: { $sum: 1 },
-          deliveredShipments: {
-            $sum: {
-              $cond: [{ $eq: ["$status", "Delivered"] }, 1, 0]
-            }
-          },
-          pendingShipments: {
-            $sum: {
-              $cond: [{ $eq: ["$status", "Pending"] }, 1, 0]
-            }
-          },
-          inTransitShipments: {
-            $sum: {
-              $cond: [{ $eq: ["$status", "In Transit"] }, 1, 0]
-            }
-          }
-        }
-      }
-    ]),
-    User.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalUsers: { $sum: 1 }
-        }
-      }
-    ])
+  const [
+    totalShipments,
+    deliveredShipments,
+    pendingShipments,
+    inTransitShipments,
+    totalUsers,
+    totalCustomers,
+    totalPartners,
+  ] = await Promise.all([
+    Shipment.countDocuments(),
+    Shipment.countDocuments({ status: "Delivered" }),
+    Shipment.countDocuments({ status: "Pending" }),
+    Shipment.countDocuments({ status: "In Transit" }),
+    User.countDocuments({ role: "admin" }),
+    Customer.countDocuments(),
+    User.countDocuments({ role: "logisticsPartner" }),
   ]);
 
-  const shipmentSummary = shipmentStats[0] || {
-    totalShipments: 0,
-    deliveredShipments: 0,
-    pendingShipments: 0,
-    inTransitShipments: 0
-  };
-
-  const userSummary = userStats[0] || { totalUsers: 0 };
-
   res.status(200).json({
-    totalUsers: userSummary.totalUsers,
-    totalShipments: shipmentSummary.totalShipments,
-    deliveredShipments: shipmentSummary.deliveredShipments,
-    pendingShipments: shipmentSummary.pendingShipments,
-    inTransitShipments: shipmentSummary.inTransitShipments
+    success: true,
+    totalUsers: totalUsers + totalCustomers,
+    totalCustomers,
+    totalPartners,
+    totalShipments,
+    deliveredShipments,
+    pendingShipments,
+    inTransitShipments,
   });
 });
 
@@ -125,5 +114,5 @@ export {
   deleteUserByAdmin,
   getAllAdminShipments,
   getAllUsers,
-  getDashboardStatistics
+  getDashboardStatistics,
 };

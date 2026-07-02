@@ -69,19 +69,27 @@ const shipmentSchema = new mongoose.Schema(
       trim: true,
       maxlength: [150, "Current location cannot exceed 150 characters"]
     },
-    expectedDeliveryDate: {
-      type: Date,
-      required: [true, "Expected delivery date is required"]
-    },
-    assignedPartner: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: [true, "Assigned partner is required"]
-    },
-    timeline: {
-      type: [shipmentTimelineSchema],
-      default: []
-    }
+   expectedDeliveryDate: {
+    type: Date,
+    required: [true, "Expected delivery date is required"]
+},
+
+customerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: [true, "Customer is required"]
+},
+
+assignedPartner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: [true, "Assigned partner is required"]
+},
+
+timeline: {
+    type: [shipmentTimelineSchema],
+    default: []
+}
   },
   {
     timestamps: true

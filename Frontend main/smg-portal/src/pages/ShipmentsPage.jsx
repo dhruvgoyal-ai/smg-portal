@@ -150,24 +150,35 @@ export default function ShipmentsPage({ role = "admin" }) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
 
+  // Translate UI snake_case filter values to the Title Case enum the backend expects
+  const STATUS_MAP = {
+    pending:          'Pending',
+    in_transit:       'In Transit',
+    out_for_delivery: 'Out For Delivery',
+    picked_up:        'Picked Up',
+    delivered:        'Delivered',
+  };
+
   useEffect(() => {
     setLoading(true);
+    const backendStatus =
+      statusFilter !== 'all' ? STATUS_MAP[statusFilter] ?? statusFilter : undefined;
     shipmentAPI
-      .getAll({ status: statusFilter !== "all" ? statusFilter : undefined })
+      .getAll({ status: backendStatus })
       .then((res) => {
-        console.log("SHIPMENTS DATA:", res.data.shipments);
-
+        // Guard against undefined — backend may return empty list
+        const raw = res.data.shipments || [];
         setShipments(
-          res.data.shipments.map((s) => ({
+          raw.map((s) => ({
             _id: s._id,
             trackingNo: s.trackingId,
             customer: s.senderName,
             origin: s.senderAddress,
             destination: s.receiverAddress,
-            status: s.status?.toLowerCase().replace(/ /g, "_"),
+            status: s.status?.toLowerCase().replace(/ /g, '_'),
             date: new Date(s.createdAt).toLocaleDateString(),
-            partner: s.assignedPartner?.name || "-",
-            weight: "-",
+            partner: s.assignedPartner?.name || '-',
+            weight: '-',
           })),
         );
       })

@@ -13,21 +13,18 @@ const NAV_CONFIG = {
     { label: 'Shipments',     icon: Package,         to: '/admin/shipments' },
     { label: 'Customers',     icon: Users,           to: '/admin/customers' },
     { label: 'Partners',      icon: Truck,           to: '/admin/partners' },
-    { label: 'Track Shipment',icon: MapPin,          to: '/track' },
     { label: 'Reports',       icon: BarChart2,       to: '/admin/analytics' },
-    { label: 'Settings',      icon: Settings,        to: '/admin/settings' },
+    
   ],
   customer: [
     { label: 'Dashboard',     icon: LayoutDashboard, to: '/customer' },
     { label: 'My Shipments',  icon: Package,         to: '/customer/shipments' },
-    { label: 'Track Shipment',icon: MapPin,          to: '/track' },
     { label: 'Documents',     icon: FileText,        to: '/customer/docs' },
     { label: 'Settings',      icon: Settings,        to: '/customer/settings' },
   ],
   partner: [
     { label: 'Dashboard',     icon: LayoutDashboard, to: '/partner' },
     { label: 'Deliveries',    icon: Package,         to: '/partner/shipments' },
-    { label: 'Track Shipment',icon: MapPin,          to: '/track' },
     { label: 'Notifications', icon: Bell,            to: '/partner/notifications' },
     { label: 'Settings',      icon: Settings,        to: '/partner/settings' },
   ],

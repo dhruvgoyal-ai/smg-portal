@@ -26,7 +26,7 @@ const ProtectedRoute = ({ children, roles }) => {
 const RoleRedirect = () => {
   const { isAuthenticated, user } = useAuth()
   if (!isAuthenticated) return <Navigate to="/login" replace />
-  const roleMap = { admin: '/admin', customer: '/customer', partner: '/partner' }
+  const roleMap = { admin: '/admin', customer: '/customer', logisticsPartner: '/partner' }
   return <Navigate to={roleMap[user?.role] || '/login'} replace />
 }
  
@@ -80,12 +80,12 @@ export default function App() {
  
           {/* Partner */}
           <Route path="/partner" element={
-            <ProtectedRoute roles={['partner']}>
+            <ProtectedRoute roles={['logisticsPartner']}>
               <PartnerDashboard />
             </ProtectedRoute>
           } />
           <Route path="/partner/shipments" element={
-            <ProtectedRoute roles={['partner']}>
+            <ProtectedRoute roles={['logisticsPartner']}>
               <ShipmentsPage role="partner" />
             </ProtectedRoute>
           } />

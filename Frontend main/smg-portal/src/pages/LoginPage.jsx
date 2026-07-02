@@ -93,11 +93,6 @@ export default function LoginPage() {
       password: form.password,
       role: form.role,
     });
-    result = await login({
-      email: form.userId,
-      password: form.password,
-      role: form.role,
-    });
 
     setLoading(false);
     if (result.success) {
