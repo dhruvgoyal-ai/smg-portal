@@ -4,15 +4,17 @@ import {
   deleteShipment,
   getAllShipments,
   getShipment,
-  updateShipment
+  updateShipment,
 } from "../controllers/shipmentController.js";
 import { authorize, protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 router.use(protect);
-
-router.route("/").get(getAllShipments).post(authorize("admin", "logisticsPartner"), createShipment);
+router
+  .route("/")
+  .get(getAllShipments)
+  .post(authorize("admin", "logisticsPartner", "customer"), createShipment);
 router
   .route("/:id")
   .get(getShipment)

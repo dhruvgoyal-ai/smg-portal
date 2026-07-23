@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import { Badge, DataTable, Modal, EmptyState } from "../components/ui";
-import { shipmentAPI, adminAPI } from "../services/api";
+import { shipmentAPI, partnerAPI, customerAPI } from "../services/api";
 import {
   Package,
   Plus,
@@ -152,17 +152,19 @@ export default function ShipmentsPage({ role = "admin" }) {
 
   // Translate UI snake_case filter values to the Title Case enum the backend expects
   const STATUS_MAP = {
-    pending:          'Pending',
-    in_transit:       'In Transit',
-    out_for_delivery: 'Out For Delivery',
-    picked_up:        'Picked Up',
-    delivered:        'Delivered',
+    pending: "Pending",
+    in_transit: "In Transit",
+    out_for_delivery: "Out For Delivery",
+    picked_up: "Picked Up",
+    delivered: "Delivered",
   };
 
   useEffect(() => {
     setLoading(true);
     const backendStatus =
-      statusFilter !== 'all' ? STATUS_MAP[statusFilter] ?? statusFilter : undefined;
+      statusFilter !== "all"
+        ? (STATUS_MAP[statusFilter] ?? statusFilter)
+        : undefined;
     shipmentAPI
       .getAll({ status: backendStatus })
       .then((res) => {
@@ -175,10 +177,10 @@ export default function ShipmentsPage({ role = "admin" }) {
             customer: s.senderName,
             origin: s.senderAddress,
             destination: s.receiverAddress,
-            status: s.status?.toLowerCase().replace(/ /g, '_'),
+            status: s.status?.toLowerCase().replace(/ /g, "_"),
             date: new Date(s.createdAt).toLocaleDateString(),
-            partner: s.assignedPartner?.name || '-',
-            weight: '-',
+            partner: s.assignedPartner?.name || "-",
+            weight: "-",
           })),
         );
       })
@@ -285,7 +287,7 @@ export default function ShipmentsPage({ role = "admin" }) {
           <button className="btn-secondary text-xs">
             <Download className="w-3.5 h-3.5" /> Export
           </button>
-          {role === "admin" && (
+          {(role === "admin" || role === "customer") && (
             <button
               onClick={() => setAddOpen(true)}
               className="btn-primary text-xs"
@@ -393,15 +395,17 @@ export default function ShipmentsPage({ role = "admin" }) {
         title="Create New Shipment"
         size="lg"
       >
-        <NewShipmentForm onClose={() => setAddOpen(false)} />
+        <NewShipmentForm role={role} onClose={() => setAddOpen(false)} />
       </Modal>
     </DashboardLayout>
   );
 }
 
-function NewShipmentForm({ onClose }) {
+function NewShipmentForm({ role, onClose }) {
+  const [customers, setCustomers] = useState([]);
   const [partners, setPartners] = useState([]);
   const [form, setForm] = useState({
+    customerId: "",
     customerName: "",
     customerEmail: "",
     customerPhone: "",
@@ -414,14 +418,21 @@ function NewShipmentForm({ onClose }) {
   });
   const [loading, setLoading] = useState(false);
   useEffect(() => {
-    adminAPI.getUsers().then((res) => {
-      const logisticsPartners = res.data.users.filter(
-        (u) => u.role === "logisticsPartner",
-      );
-      console.log(logisticsPartners);
+    if (role !== "admin") return;
 
-      setPartners(logisticsPartners);
-    });
+    const loadData = async () => {
+      try {
+        const partnerRes = await partnerAPI.getAll();
+        setPartners(partnerRes.data.partners);
+
+        const customerRes = await customerAPI.getAll();
+        setCustomers(Array.isArray(customerRes.data) ? customerRes.data : []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadData();
   }, []);
   const handleChange = (e) =>
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
@@ -431,6 +442,8 @@ function NewShipmentForm({ onClose }) {
     setLoading(true);
     try {
       const payload = {
+        customerId: role === "admin" ? form.customerId : undefined,
+
         trackingId: `SMG-${Date.now()}`,
         senderName: form.customerName,
         receiverName: form.customerName,
@@ -441,6 +454,9 @@ function NewShipmentForm({ onClose }) {
         assignedPartner: form.partner,
         timelineNote: form.notes,
       };
+      if (role === "admin") {
+        payload.assignedPartner = form.partner;
+      }
 
       await shipmentAPI.create(payload);
       onClose();
@@ -456,7 +472,7 @@ function NewShipmentForm({ onClose }) {
     <form onSubmit={handleSubmit} className="space-y-4 text-sm">
       <div className="grid grid-cols-2 gap-3">
         {[
-          ["customerName", "Customer Name", "text", "Rahul Verma"],
+          ["customerId", "Customer", "select", ""],
           ["customerEmail", "Customer Email", "email", "rahul@email.com"],
           ["customerPhone", "Phone", "text", "+91-XXXXX-XXXXX"],
           ["origin", "Origin City", "text", "Mumbai"],
@@ -467,14 +483,43 @@ function NewShipmentForm({ onClose }) {
             <label className="block text-xs font-semibold text-slate-600 mb-1">
               {label}
             </label>
-            <input
-              name={name}
-              type={type}
-              value={form[name]}
-              onChange={handleChange}
-              placeholder={placeholder}
-              className="input-field"
-            />
+            {type === "select" ? (
+              <select
+                name="customerId"
+                value={form.customerId}
+                onChange={(e) => {
+                  const customer = customers.find(
+                    (c) => c._id === e.target.value,
+                  );
+
+                  setForm((prev) => ({
+                    ...prev,
+                    customerId: customer?._id || "",
+                    customerName: customer?.fullName || "",
+                    customerEmail: customer?.email || "",
+                    customerPhone: customer?.phone || "",
+                  }));
+                }}
+                className="input-field"
+              >
+                <option value="">Select Customer</option>
+
+                {(customers || []).map((customer) => (
+                  <option key={customer._id} value={customer._id}>
+                    {customer.fullName} ({customer.email})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                name={name}
+                type={type}
+                value={form[name]}
+                onChange={handleChange}
+                placeholder={placeholder}
+                className="input-field"
+              />
+            )}
           </div>
         ))}
       </div>
@@ -496,24 +541,26 @@ function NewShipmentForm({ onClose }) {
           <option>Documents</option>
         </select>
       </div>
-      <div>
-        <label>Assign Partner</label>
+      {role === "admin" && (
+        <div>
+          <label>Assign Partner</label>
 
-        <select
-          name="partner"
-          value={form.partner}
-          onChange={handleChange}
-          className="input-field"
-        >
-          <option value="">Select Partner</option>
+          <select
+            name="partner"
+            value={form.partner}
+            onChange={handleChange}
+            className="input-field"
+          >
+            <option value="">Select Partner</option>
 
-          {partners.map((p) => (
-            <option key={p._id} value={p._id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-      </div>
+            {partners.map((p) => (
+              <option key={p._id} value={p._id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div>
         <label className="block text-xs font-semibold text-slate-600 mb-1">
           Notes

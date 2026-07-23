@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import Shipment from "../models/Shipment.js";
 import User from "../models/User.js";
 import asyncHandler from "../utils/asyncHandler.js";
-
+import Customer from "../models/Customer.js";
 const validateAssignedPartner = async (assignedPartner) => {
   if (!mongoose.Types.ObjectId.isValid(assignedPartner)) {
     return false;
@@ -25,8 +25,12 @@ const createShipment = asyncHandler(async (req, res) => {
     expectedDeliveryDate,
     customerId,
     assignedPartner,
-    timelineNote
-  }=req.body;
+    timelineNote,
+  } = req.body;
+  const isCustomer = req.user.role === "customer";
+
+  const finalCustomerId = isCustomer ? req.user._id : customerId;
+  const isAdmin = req.user.role === "admin";
 
   if (
     !trackingId ||
@@ -35,21 +39,28 @@ const createShipment = asyncHandler(async (req, res) => {
     !senderAddress ||
     !receiverAddress ||
     !currentLocation ||
-    !expectedDeliveryDate ||
-    !assignedPartner
+    !expectedDeliveryDate
   ) {
     res.status(400);
     throw new Error("All shipment fields are required");
   }
 
-  const existingShipment = await Shipment.findOne({ trackingId: trackingId.toUpperCase() });
+  if (req.user.role === "admin" && !assignedPartner) {
+    res.status(400);
+    throw new Error("Please assign a logistics partner");
+  }
+  const existingShipment = await Shipment.findOne({
+    trackingId: trackingId.toUpperCase(),
+  });
 
   if (existingShipment) {
     res.status(409);
     throw new Error("Shipment with this tracking ID already exists");
   }
-  const customer = await User.findById(customerId);
-   if (!customer || customer.role !== "customer") {
+
+  const customer = await Customer.findById(finalCustomerId);
+
+  if (!customer) {
     res.status(400);
     throw new Error("Invalid customer");
   }
@@ -70,28 +81,28 @@ const createShipment = asyncHandler(async (req, res) => {
     status,
     currentLocation,
     expectedDeliveryDate,
-    customerId,
-    assignedPartner,
+    customerId: finalCustomerId,
+    assignedPartner: isAdmin ? assignedPartner : null,
 
     timeline: [
       {
         // Use the explicitly provided status, or fall back to the schema default "Pending"
         status: status || "Pending",
         location: currentLocation,
-        note: timelineNote || "Shipment created"
-      }
-    ]
+        note: timelineNote || "Shipment created",
+      },
+    ],
   });
 
   const populatedShipment = await Shipment.findById(shipment._id).populate(
     "assignedPartner",
-    "name email phone role"
+    "name email phone role",
   );
 
   res.status(201).json({
     success: true,
     message: "Shipment created successfully",
-    shipment: populatedShipment
+    shipment: populatedShipment,
   });
 });
 
@@ -103,7 +114,7 @@ const getShipment = asyncHandler(async (req, res) => {
 
   const shipment = await Shipment.findById(req.params.id).populate(
     "assignedPartner",
-    "name email phone role"
+    "name email phone role",
   );
 
   if (!shipment) {
@@ -113,7 +124,7 @@ const getShipment = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    shipment
+    shipment,
   });
 });
 
@@ -127,7 +138,7 @@ const getAllShipments = asyncHandler(async (req, res) => {
     if (customerName) {
       query.$or = [
         { senderName: { $regex: new RegExp("^" + customerName + "$", "i") } },
-        { receiverName: { $regex: new RegExp("^" + customerName + "$", "i") } }
+        { receiverName: { $regex: new RegExp("^" + customerName + "$", "i") } },
       ];
     }
   }
@@ -136,7 +147,10 @@ const getAllShipments = asyncHandler(async (req, res) => {
     query.status = req.query.status;
   }
 
-  if (req.query.assignedPartner && mongoose.Types.ObjectId.isValid(req.query.assignedPartner)) {
+  if (
+    req.query.assignedPartner &&
+    mongoose.Types.ObjectId.isValid(req.query.assignedPartner)
+  ) {
     query.assignedPartner = req.query.assignedPartner;
   }
 
@@ -147,10 +161,9 @@ const getAllShipments = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     count: shipments.length,
-    shipments
+    shipments,
   });
 });
-
 
 const updateShipment = asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -175,14 +188,16 @@ const updateShipment = asyncHandler(async (req, res) => {
     currentLocation,
     expectedDeliveryDate,
     assignedPartner,
-    timelineNote
+    timelineNote,
   } = req.body;
 
   const previousStatus = shipment.status;
   const previousLocation = shipment.currentLocation;
 
   if (trackingId && trackingId.toUpperCase() !== shipment.trackingId) {
-    const duplicateShipment = await Shipment.findOne({ trackingId: trackingId.toUpperCase() });
+    const duplicateShipment = await Shipment.findOne({
+      trackingId: trackingId.toUpperCase(),
+    });
 
     if (duplicateShipment) {
       res.status(409);
@@ -209,7 +224,8 @@ const updateShipment = asyncHandler(async (req, res) => {
   if (receiverAddress) shipment.receiverAddress = receiverAddress;
   if (status) shipment.status = status;
   if (currentLocation) shipment.currentLocation = currentLocation;
-  if (expectedDeliveryDate) shipment.expectedDeliveryDate = expectedDeliveryDate;
+  if (expectedDeliveryDate)
+    shipment.expectedDeliveryDate = expectedDeliveryDate;
 
   const hasTrackingChange =
     (status && status !== previousStatus) ||
@@ -220,7 +236,7 @@ const updateShipment = asyncHandler(async (req, res) => {
     shipment.timeline.push({
       status: shipment.status,
       location: shipment.currentLocation,
-      note: timelineNote || "Shipment updated"
+      note: timelineNote || "Shipment updated",
     });
   }
 
@@ -228,13 +244,13 @@ const updateShipment = asyncHandler(async (req, res) => {
 
   const updatedShipment = await Shipment.findById(shipment._id).populate(
     "assignedPartner",
-    "name email phone role"
+    "name email phone role",
   );
 
   res.status(200).json({
     success: true,
     message: "Shipment updated successfully",
-    shipment: updatedShipment
+    shipment: updatedShipment,
   });
 });
 
@@ -255,8 +271,14 @@ const deleteShipment = asyncHandler(async (req, res) => {
 
   res.status(200).json({
     success: true,
-    message: "Shipment deleted successfully"
+    message: "Shipment deleted successfully",
   });
 });
 
-export { createShipment, updateShipment, deleteShipment, getShipment, getAllShipments };
+export {
+  createShipment,
+  updateShipment,
+  deleteShipment,
+  getShipment,
+  getAllShipments,
+};
